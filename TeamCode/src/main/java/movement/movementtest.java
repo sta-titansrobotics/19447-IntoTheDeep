@@ -1,4 +1,4 @@
-package vision;
+package movement;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -47,6 +47,8 @@ public class movementtest extends LinearOpMode {
     static double dir;
     static double mag;
     static double pi = Math.PI;
+
+    double rot;
 
     double offset = 0;
     double imureset = 0;
@@ -100,16 +102,9 @@ public class movementtest extends LinearOpMode {
 
             // ------------------DRIVE TRAIN---------------------------------
 
+            //will cause the offset to be set back to 0
             if (gamepad1.x)
                 imureset = getAngle();
-
-            if (gamepad1.b) {
-                contd.setPower(1);
-            } else if (gamepad1.a) {
-                contd.setPower(-1);
-            } else {
-                contd.setPower(0);
-            }
 
             offset = getAngle() - imureset;
 
@@ -125,11 +120,20 @@ public class movementtest extends LinearOpMode {
             if (mag > Math.sqrt(2))
                 mag = Math.sqrt(2);
 
+            rot = gamepad1.left_stick_x;
+
+            //CHANGE ROTATION TO BE CONTROLLED BY GAMEPAD 2
+            if (gamepad1.b)
+                rot *= 0.5;
+            if (gamepad1.b)
+                mag *= 0.5;
+
+
             if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0){
-                FR.setPower((Math.sin(dir-(pi/4))*mag) - gamepad1.left_stick_x);
-                FL.setPower((Math.sin(dir+(pi/4))*mag) + gamepad1.left_stick_x);
-                BR.setPower((Math.sin(dir+(pi/4))*mag) - gamepad1.left_stick_x);
-                BL.setPower((Math.sin(dir-(pi/4))*mag) + gamepad1.left_stick_x);
+                FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
+                FL.setPower((Math.sin(dir+(pi/4))*mag) + rot);
+                BR.setPower((Math.sin(dir+(pi/4))*mag) - rot);
+                BL.setPower((Math.sin(dir-(pi/4))*mag) + rot);
             } else {
                 FL.setPower(0);
                 BL.setPower(0);
