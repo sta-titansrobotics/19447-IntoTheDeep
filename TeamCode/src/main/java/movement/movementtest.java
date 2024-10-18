@@ -53,6 +53,8 @@ public class movementtest extends LinearOpMode {
     double offset = 0;
     double imureset = 0;
 
+    double wristYaw;
+
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
     double angle;
@@ -67,7 +69,10 @@ public class movementtest extends LinearOpMode {
         DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Control hub 3
         DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Control hub 2
 
-        CRServo contd = hardwareMap.get(CRServo.class, "contd");
+        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext");
+
+        Servo claw = hardwareMap.get(Servo.class, "Claw");
+        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -93,17 +98,65 @@ public class movementtest extends LinearOpMode {
         FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        Lext.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        claw.setPosition(0.25);
+
         waitForStart();
 
         if (isStopRequested())
             return;
 
         while (opModeIsActive()) {
+            // ------------------MACROS---------------------------------
+            // ------------------TELEOP---------------------------------
+
+            //claw control
+            if (gamepad1.a && !butAcheck) {
+                buttonA += 1;
+                butAcheck = true;
+            }
+            if (!gamepad1.a) {
+                butAcheck = false;
+            }
+
+            if (!butAcheck) {
+                if (buttonA % 2 == 1) {
+                    claw.setPosition(0.25);
+                    } else {
+                    claw.setPosition(0);
+                }
+            }
+
+            if (gamepad1.right_bumper && Lext.getCurrentPosition() < 3100){
+                Lext.setPower(1);
+            } else if (gamepad1.left_bumper && Lext.getCurrentPosition() > 50){
+                Lext.setPower(-1);
+            } else
+                Lext.setPower(0);
+
+
+            //wrist yaw rot sync
+            if (gamepad1.x && !butXcheck) {
+                buttonX += 1;
+                butXcheck = true;
+            }
+            if (!gamepad1.x) {
+                butXcheck = false;
+            }
+
+            if (!butXcheck) {
+                if (buttonX % 2 == 1) {
+                    wristYawservo.setPosition(dir/pi);
+                } else {
+                    wristYawservo.setPosition(wristYaw);
+                }
+            }
 
             // ------------------DRIVE TRAIN---------------------------------
 
             //will cause the offset to be set back to 0
-            if (gamepad1.x)
+            if (gamepad2.x)
                 imureset = getAngle();
 
             offset = getAngle() - imureset;
@@ -151,6 +204,13 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("Ly", gamepad1.left_stick_y);
             telemetry.addData("Rx", gamepad1.right_stick_x);
             telemetry.addData("Ry", gamepad1.right_stick_y);
+
+            telemetry.addData("Left Extender", Lext.getPower());
+            telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
+
+            telemetry.addData("A", buttonA);
+            telemetry.addData("Claw Dir", claw.getPosition());
+            telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
 
             telemetry.update();
         }
