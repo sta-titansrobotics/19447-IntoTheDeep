@@ -48,6 +48,11 @@ public class movementtest extends LinearOpMode {
     static double mag;
     static double pi = Math.PI;
 
+    int lexttarg;
+    int rexttarg;
+    double Lextpower;
+    double Rextpower;
+
     double rot;
 
     double offset = 0;
@@ -64,15 +69,16 @@ public class movementtest extends LinearOpMode {
 
         // ----------------------Set Up------------------------------------------------
         // Moving
-        DcMotor FL = hardwareMap.get(DcMotor.class, "FL"); // Expansion hub 3
-        DcMotor BL = hardwareMap.get(DcMotor.class, "BL"); // Expansion hub 2
-        DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Control hub 3
-        DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Control hub 2
+        DcMotor FL = hardwareMap.get(DcMotor.class, "FL"); // Expansion hub 
+        DcMotor BL = hardwareMap.get(DcMotor.class, "BL"); // Expansion hub 
+        DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Expantion hub 
+        DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Expantion hub 
 
-        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext");
+        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub
+        DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext");
 
-        Servo claw = hardwareMap.get(Servo.class, "Claw");
-        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw");
+        Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 1
+        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 2
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -92,6 +98,7 @@ public class movementtest extends LinearOpMode {
 
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
+        Rext.setDirection(DcMotorSimple.Direction.REVERSE);
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -99,8 +106,7 @@ public class movementtest extends LinearOpMode {
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         Lext.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        claw.setPosition(0.25);
+        Rext.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         waitForStart();
 
@@ -108,7 +114,47 @@ public class movementtest extends LinearOpMode {
             return;
 
         while (opModeIsActive()) {
+            // ------------------PID-POWER---------------------------------
+
+            // 4 stage sliders
+            // limiting the motors movement so that it does not try to over extend the sliders
+            rexttarg = Math.clamp(rexttarg, 50, 3100);
+            lexttarg = Math.clamp(lexttarg, 50, 3100);
+
+            // actual pd calculations
+            Rextpower = (rexttarg - Rext.getCurrentPosition())*rextpreverr;
+            Lextpower = (lexttarg - Lext.getCurrentPosition())*lextpreverr;
+
+            // getting the previous error
+            rextpreverr = (rexttarg - Rext.getCurrentPosition());
+            lextpreverr = (lexttarg - Lext.getCurrentPosition());
+
+            // actually setting the motor power
+            Rext.setPower(Math.clamp(Rextpower, -1.0, 1.0));
+            Lext.setPower(Math.clamp(Lextpower, -1.0, 1.0));
+
             // ------------------MACROS---------------------------------
+
+            // 4 stage sliders
+            if (gamepad1.y && !butYcheck) {
+                buttonY += 1;
+                butYcheck = true;
+            }
+
+            if (!gamepad1.y) {
+                butYcheck = false;
+            }
+
+            if (!butYcheck) {
+                if (buttonY % 2 == 1) {
+                    rexttarg = 3100;
+                    lexttarg = 3100;
+                    } else {
+                    rexttarg = 50;
+                    lexttarg = 50;
+                }
+            }
+
             // ------------------TELEOP---------------------------------
 
             //claw control
@@ -128,12 +174,13 @@ public class movementtest extends LinearOpMode {
                 }
             }
 
-            if (gamepad1.right_bumper && Lext.getCurrentPosition() < 3100){
-                Lext.setPower(1);
-            } else if (gamepad1.left_bumper && Lext.getCurrentPosition() > 50){
-                Lext.setPower(-1);
-            } else
-                Lext.setPower(0);
+            if (gamepad1.right_bumper){
+                rexttarg += 10;
+                lexttarg += 10;
+            } else if (gamepad1.left_bumper){
+                rexttarg -= 10;
+                lexttarg -= 10;
+            }
 
 
             //wrist yaw rot sync
@@ -148,6 +195,7 @@ public class movementtest extends LinearOpMode {
             if (!butXcheck) {
                 if (buttonX % 2 == 1) {
                     wristYawservo.setPosition(dir/pi);
+                    wristYaw = (dir/pi);
                 } else {
                     wristYawservo.setPosition(wristYaw);
                 }
@@ -207,8 +255,18 @@ public class movementtest extends LinearOpMode {
 
             telemetry.addData("Left Extender", Lext.getPower());
             telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
+            telemetry.addData("Right Extender", Lext.getPower());
+            telemetry.addData("Right Extender Enc", Lext.getCurrentPosition());
 
             telemetry.addData("A", buttonA);
+            telemetry.addData("B", buttonB);
+            telemetry.addData("X", buttonX);
+            telemetry.addData("Y", buttonY);
+            telemetry.addData("A2", button2A);
+            telemetry.addData("B2", button2B);
+            telemetry.addData("X2", button2X);
+            telemetry.addData("Y2", button2Y);
+
             telemetry.addData("Claw Dir", claw.getPosition());
             telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
 
