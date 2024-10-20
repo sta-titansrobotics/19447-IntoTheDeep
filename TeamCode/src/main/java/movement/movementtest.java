@@ -52,6 +52,8 @@ public class movementtest extends LinearOpMode {
     int rexttarg;
     double Lextpower;
     double Rextpower;
+    double rextpreverr;
+    double lextpreverr;
 
     double rot;
 
@@ -118,8 +120,8 @@ public class movementtest extends LinearOpMode {
 
             // 4 stage sliders
             // limiting the motors movement so that it does not try to over extend the sliders
-            rexttarg = Math.clamp(rexttarg, 50, 3100);
-            lexttarg = Math.clamp(lexttarg, 50, 3100);
+            rexttarg = (int) clamp(rexttarg, 50, 3100);
+            lexttarg = (int) clamp(lexttarg, 50, 3100);
 
             // actual pd calculations
             Rextpower = (rexttarg - Rext.getCurrentPosition())*rextpreverr;
@@ -130,8 +132,8 @@ public class movementtest extends LinearOpMode {
             lextpreverr = (lexttarg - Lext.getCurrentPosition());
 
             // actually setting the motor power
-            Rext.setPower(Math.clamp(Rextpower, -1.0, 1.0));
-            Lext.setPower(Math.clamp(Lextpower, -1.0, 1.0));
+            Rext.setPower(clamp(Rextpower, -1, 1));
+            Lext.setPower(clamp(Lextpower, -1, 1));
 
             // ------------------MACROS---------------------------------
 
@@ -242,6 +244,7 @@ public class movementtest extends LinearOpMode {
                 BR.setPower(0);
             }
 
+            telemetry.addLine("Drivetrain");
             telemetry.addData("dir", dir);
             telemetry.addData("offset", offset);
             telemetry.addData("FR Power", FR.getPower());
@@ -253,11 +256,23 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("Rx", gamepad1.right_stick_x);
             telemetry.addData("Ry", gamepad1.right_stick_y);
 
-            telemetry.addData("Left Extender", Lext.getPower());
+            telemetry.addLine("4 Stage Sliders");
+            telemetry.addData("Left Extender Pwr", Lext.getPower());
             telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
-            telemetry.addData("Right Extender", Lext.getPower());
+            telemetry.addData("Right Extender Pwr", Lext.getPower());
             telemetry.addData("Right Extender Enc", Lext.getCurrentPosition());
+            telemetry.addData("Left Targ", lexttarg);
+            telemetry.addData("Right Targ", rexttarg);
+            telemetry.addData("Left Err", (lexttarg - Lext.getCurrentPosition()));
+            telemetry.addData("Right Err", (rexttarg - Rext.getCurrentPosition()));
+            telemetry.addData("Left Err Prev", lextpreverr);
+            telemetry.addData("Right Err Prev", rextpreverr);
 
+            telemetry.addLine("Intake");
+            telemetry.addData("Claw Rot", claw.getPosition());
+            telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
+
+            telemetry.addLine("User Inputs");
             telemetry.addData("A", buttonA);
             telemetry.addData("B", buttonB);
             telemetry.addData("X", buttonX);
@@ -267,8 +282,7 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("X2", button2X);
             telemetry.addData("Y2", button2Y);
 
-            telemetry.addData("Claw Dir", claw.getPosition());
-            telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
+            //telemetry.addData("", );
 
             telemetry.update();
         }
@@ -291,5 +305,8 @@ public class movementtest extends LinearOpMode {
         lastAngles = angles;
 
         return angle;
+    }
+    public double clamp(double value, double min, double max) {
+        return Math.min(Math.max(value, min), max);
     }
 }
