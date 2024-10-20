@@ -43,7 +43,7 @@ public class movementtest extends LinearOpMode {
     boolean butBcheck = false;
 
     double prevtime;
-
+    
     static double dir;
     static double mag;
     static double pi = Math.PI;
