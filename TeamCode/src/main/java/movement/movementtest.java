@@ -32,15 +32,14 @@ public class movementtest extends LinearOpMode {
     int buttonX = 0;
     int buttonY = 0;
 
-    boolean but2Acheck = false;
-    boolean but2Ycheck = false;
-    boolean but2Xcheck = false;
-    boolean but2Bcheck = false;
-
     boolean butAcheck = false;
     boolean butYcheck = false;
     boolean butXcheck = false;
     boolean butBcheck = false;
+    boolean but2Acheck = false;
+    boolean but2Ycheck = false;
+    boolean but2Xcheck = false;
+    boolean but2Bcheck = false;
 
     double prevtime;
     
@@ -50,10 +49,17 @@ public class movementtest extends LinearOpMode {
 
     int lexttarg;
     int rexttarg;
+    int lexttargfine;
+    int rexttargfine;
+    double rexterr;
+    double lexterr;
     double Lextpower;
     double Rextpower;
     double rextpreverr;
     double lextpreverr;
+
+    double Kp = 0.025;
+    double Kd = 0.03;
 
     double rot;
 
@@ -76,11 +82,11 @@ public class movementtest extends LinearOpMode {
         DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Expantion hub 
         DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Expantion hub 
 
-        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub
-        DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext");
+        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub 0
+        DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext"); // Control hub 1
 
-        Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 1
-        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 2
+        Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 0
+        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 1
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -100,7 +106,9 @@ public class movementtest extends LinearOpMode {
 
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
-        Rext.setDirection(DcMotorSimple.Direction.REVERSE);
+        Lext.setDirection(DcMotorSimple.Direction.REVERSE);
+
+
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -123,9 +131,12 @@ public class movementtest extends LinearOpMode {
             rexttarg = (int) clamp(rexttarg, 50, 3100);
             lexttarg = (int) clamp(lexttarg, 50, 3100);
 
+            rexterr = lexttarg - Rext.getCurrentPosition();
+            lexterr = lexttarg - Lext.getCurrentPosition();
+
             // actual pd calculations
-            Rextpower = (rexttarg - Rext.getCurrentPosition())*rextpreverr;
-            Lextpower = (lexttarg - Lext.getCurrentPosition())*lextpreverr;
+            Rextpower = Kp*rexterr+Kd*(rexterr - rextpreverr);
+            Lextpower = Kp*lexterr+Kd*(lexterr - lextpreverr);
 
             // getting the previous error
             rextpreverr = (rexttarg - Rext.getCurrentPosition());
@@ -135,25 +146,30 @@ public class movementtest extends LinearOpMode {
             Rext.setPower(clamp(Rextpower, -1, 1));
             Lext.setPower(clamp(Lextpower, -1, 1));
 
+            if (gamepad2.right_bumper)
+                Kd += 0.0001;
+            if (gamepad2.left_bumper)
+                Kd -= 0.0001;
+
             // ------------------MACROS---------------------------------
 
             // 4 stage sliders
-            if (gamepad1.y && !butYcheck) {
+            if (gamepad2.y && !butYcheck) {
                 buttonY += 1;
                 butYcheck = true;
             }
 
-            if (!gamepad1.y) {
+            if (!gamepad2.y) {
                 butYcheck = false;
             }
 
             if (!butYcheck) {
                 if (buttonY % 2 == 1) {
-                    rexttarg = 3100;
-                    lexttarg = 3100;
+                    rexttarg = 3100 + rexttargfine;
+                    lexttarg = 3100 + rexttargfine;
                     } else {
-                    rexttarg = 50;
-                    lexttarg = 50;
+                    rexttarg = 50 + rexttargfine;
+                    lexttarg = 50 + rexttargfine;
                 }
             }
 
@@ -176,12 +192,13 @@ public class movementtest extends LinearOpMode {
                 }
             }
 
+            //slider control
             if (gamepad1.right_bumper){
-                rexttarg += 10;
-                lexttarg += 10;
+                rexttargfine += 10;
+                lexttargfine += 10;
             } else if (gamepad1.left_bumper){
-                rexttarg -= 10;
-                lexttarg -= 10;
+                rexttargfine -= 10;
+                lexttargfine -= 10;
             }
 
 
@@ -244,6 +261,15 @@ public class movementtest extends LinearOpMode {
                 BR.setPower(0);
             }
 
+            telemetry.addData("Kp", Kp);
+            telemetry.addData("Kd", Kd);
+
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+
+
             telemetry.addLine("Drivetrain");
             telemetry.addData("dir", dir);
             telemetry.addData("offset", offset);
@@ -257,16 +283,17 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("Ry", gamepad1.right_stick_y);
 
             telemetry.addLine("4 Stage Sliders");
-            telemetry.addData("Left Extender Pwr", Lext.getPower());
+            telemetry.addData("Left Extender Pwr", 0.01*lexterr*0.1*(lextpreverr - lexterr));
             telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
-            telemetry.addData("Right Extender Pwr", Lext.getPower());
-            telemetry.addData("Right Extender Enc", Lext.getCurrentPosition());
             telemetry.addData("Left Targ", lexttarg);
-            telemetry.addData("Right Targ", rexttarg);
             telemetry.addData("Left Err", (lexttarg - Lext.getCurrentPosition()));
+            telemetry.addData("Left Err Prev Diff", (lexterr - lextpreverr));
+
+            telemetry.addData("Right Extender Pwr", 0.01*rexterr*0.1*(rextpreverr - rexterr));
+            telemetry.addData("Right Extender Enc", Rext.getCurrentPosition());
+            telemetry.addData("Right Targ", rexttarg);
             telemetry.addData("Right Err", (rexttarg - Rext.getCurrentPosition()));
-            telemetry.addData("Left Err Prev", lextpreverr);
-            telemetry.addData("Right Err Prev", rextpreverr);
+            telemetry.addData("Right Err Prev Diff", (lexterr - lextpreverr));
 
             telemetry.addLine("Intake");
             telemetry.addData("Claw Rot", claw.getPosition());
