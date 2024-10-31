@@ -19,7 +19,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
-//so far the newest file as of Feb 5 2024
 @TeleOp
 public class movementtest extends LinearOpMode {
 
@@ -58,6 +57,8 @@ public class movementtest extends LinearOpMode {
     double rextpreverr;
     double lextpreverr;
 
+    double torquetarg;
+
     double Kp = 0.025;
     double Kd = 0.03;
 
@@ -84,6 +85,7 @@ public class movementtest extends LinearOpMode {
 
         DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub 0
         DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext"); // Control hub 1
+        DcMotor Torque = hardwareMap.get(DcMotor.class, "Torque"); // Control hub 2
 
         Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 0
         Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 1
@@ -108,8 +110,6 @@ public class movementtest extends LinearOpMode {
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
         Lext.setDirection(DcMotorSimple.Direction.REVERSE);
 
-
-
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -128,8 +128,8 @@ public class movementtest extends LinearOpMode {
 
             // 4 stage sliders
             // limiting the motors movement so that it does not try to over extend the sliders
-            rexttarg = (int) clamp(rexttarg, 50, 3100);
-            lexttarg = (int) clamp(lexttarg, 50, 3100);
+            rexttarg = (int) clamp(rexttarg, 50, 31000);
+            lexttarg = (int) clamp(lexttarg, 50, 31000);
 
             rexterr = lexttarg - Rext.getCurrentPosition();
             lexterr = lexttarg - Lext.getCurrentPosition();
@@ -145,11 +145,6 @@ public class movementtest extends LinearOpMode {
             // actually setting the motor power
             Rext.setPower(clamp(Rextpower, -1, 1));
             Lext.setPower(clamp(Lextpower, -1, 1));
-
-            if (gamepad2.right_bumper)
-                Kd += 0.0001;
-            if (gamepad2.left_bumper)
-                Kd -= 0.0001;
 
             // ------------------MACROS---------------------------------
 
@@ -174,6 +169,13 @@ public class movementtest extends LinearOpMode {
             }
 
             // ------------------TELEOP---------------------------------
+
+            if (gamepad2.right_bumper)
+                Torque.setPower(1);
+            else if (gamepad2.left_bumper)
+                 Torque.setPower(-1);
+            else
+                 Torque.setPower(0);
 
             //claw control
             if (gamepad1.a && !butAcheck) {
@@ -261,16 +263,8 @@ public class movementtest extends LinearOpMode {
                 BR.setPower(0);
             }
 
-            telemetry.addData("Kp", Kp);
-            telemetry.addData("Kd", Kd);
-
-            telemetry.addLine("");
-            telemetry.addLine("");
-            telemetry.addLine("");
-            telemetry.addLine("");
-
-
             telemetry.addLine("Drivetrain");
+            telemetry.addLine("");
             telemetry.addData("dir", dir);
             telemetry.addData("offset", offset);
             telemetry.addData("FR Power", FR.getPower());
@@ -282,12 +276,20 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("Rx", gamepad1.right_stick_x);
             telemetry.addData("Ry", gamepad1.right_stick_y);
 
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+
             telemetry.addLine("4 Stage Sliders");
+            telemetry.addLine("");
             telemetry.addData("Left Extender Pwr", 0.01*lexterr*0.1*(lextpreverr - lexterr));
             telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
             telemetry.addData("Left Targ", lexttarg);
             telemetry.addData("Left Err", (lexttarg - Lext.getCurrentPosition()));
             telemetry.addData("Left Err Prev Diff", (lexterr - lextpreverr));
+
+            telemetry.addLine("");
+            telemetry.addLine("");
 
             telemetry.addData("Right Extender Pwr", 0.01*rexterr*0.1*(rextpreverr - rexterr));
             telemetry.addData("Right Extender Enc", Rext.getCurrentPosition());
@@ -295,11 +297,23 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("Right Err", (rexttarg - Rext.getCurrentPosition()));
             telemetry.addData("Right Err Prev Diff", (lexterr - lextpreverr));
 
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+
             telemetry.addLine("Intake");
+            telemetry.addLine("");
             telemetry.addData("Claw Rot", claw.getPosition());
             telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
+            telemetry.addData("Torque2", torquetarg);
+            telemetry.addData("Torque", Torque.getPower());
+
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
 
             telemetry.addLine("User Inputs");
+            telemetry.addLine("");
             telemetry.addData("A", buttonA);
             telemetry.addData("B", buttonB);
             telemetry.addData("X", buttonX);
