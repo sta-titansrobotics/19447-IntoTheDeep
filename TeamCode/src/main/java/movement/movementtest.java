@@ -59,8 +59,8 @@ public class movementtest extends LinearOpMode {
 
     double torquetarg;
 
-    double Kp = 0.025;
-    double Kd = 0.03;
+    double Kp = 0.02;
+    double Kd = 0.015;
 
     double rot;
 
@@ -128,8 +128,8 @@ public class movementtest extends LinearOpMode {
 
             // 4 stage sliders
             // limiting the motors movement so that it does not try to over extend the sliders
-            rexttarg = (int) clamp(rexttarg, 50, 31000);
-            lexttarg = (int) clamp(lexttarg, 50, 31000);
+            rexttarg = (int) clamp(rexttarg, 50, 4100);
+            lexttarg = (int) clamp(lexttarg, 50, 4100);
 
             rexterr = lexttarg - Rext.getCurrentPosition();
             lexterr = lexttarg - Lext.getCurrentPosition();
@@ -160,8 +160,8 @@ public class movementtest extends LinearOpMode {
 
             if (!butYcheck) {
                 if (buttonY % 2 == 1) {
-                    rexttarg = 3100 + rexttargfine;
-                    lexttarg = 3100 + rexttargfine;
+                    rexttarg = 4100 + rexttargfine;
+                    lexttarg = 4100 + rexttargfine;
                     } else {
                     rexttarg = 50 + rexttargfine;
                     lexttarg = 50 + rexttargfine;
@@ -262,6 +262,9 @@ public class movementtest extends LinearOpMode {
                 FR.setPower(0);
                 BR.setPower(0);
             }
+
+            telemetry.addData("kp", Kp);
+            telemetry.addData("kd", Kd);
 
             telemetry.addLine("Drivetrain");
             telemetry.addLine("");
