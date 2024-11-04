@@ -52,6 +52,12 @@ public class learning_pid extends LinearOpMode {
 
     double torquetarg;
 
+    double torquepow;
+
+    double torquepreverr;
+
+    double torqueerr;
+
     double Kp = 0.02;
     double Kd = 0.015;
 
@@ -139,6 +145,19 @@ public class learning_pid extends LinearOpMode {
             Rext.setPower(clamp(Rextpower, -1, 1));
             Lext.setPower(clamp(Lextpower, -1, 1));
 
+            // ------------------PID-Torqure----------------------------
+
+            // Limiting the motors movement so they don't overextend
+            torquetarg = (int) clamp(torquetarg, 1, 250);
+
+            torqueerr = torquetarg - Torque.getCurrentPosition();
+
+            torquepow = Kp*torqueerr*Kd + Kd*torqueerr;
+
+            torquepreverr = torqueerr;
+
+            Torque.setPower(clamp(torquepow, -1, 1));
+
             // ------------------MACROS---------------------------------
 
             // 4 stage sliders
@@ -162,6 +181,8 @@ public class learning_pid extends LinearOpMode {
             }
 
             // ------------------TELEOP---------------------------------
+
+            //if (gambad)
 
             if (gamepad2.right_bumper)
                 Torque.setPower(1);
