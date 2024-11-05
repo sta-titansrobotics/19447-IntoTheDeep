@@ -182,7 +182,23 @@ public class learning_pid extends LinearOpMode {
 
             // ------------------TELEOP---------------------------------
 
-            //if (gambad)
+            if (gamepad2.a && !but2Acheck){
+                button2A += 1;
+                but2Acheck = true;
+            }
+
+            if (!gamepad2.a){
+                but2Acheck = false;
+            }
+
+            if (!but2Acheck) {
+                if (button2A % 2 == 1) {
+                    rexttargfine += 10;
+                    lexttargfine += 10;
+                } else {
+                    Torque.setTargetPosition(0);
+                }
+            }
 
             if (gamepad2.right_bumper)
                 Torque.setPower(1);
