@@ -20,7 +20,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 @TeleOp
-public class movementtest extends LinearOpMode {
+public class coords_auto extends LinearOpMode {
 
     int button2X = 0;
     int button2A = 0;
