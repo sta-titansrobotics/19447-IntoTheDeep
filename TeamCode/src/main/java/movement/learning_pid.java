@@ -3,6 +3,7 @@ package movement;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -50,16 +51,22 @@ public class learning_pid extends LinearOpMode {
     double rextpreverr;
     double lextpreverr;
 
-    double torquetarg;
-
+    int torquetarg;
     double torquepow;
-
     double torquepreverr;
-
     double torqueerr;
 
-    double Kp = 0.02;
+    int geotarg;
+    double geopow;
+    double geopreverr;
+    double geoerr;
+
+    double Kp = 0.0175;
     double Kd = 0.015;
+    double torKp = 0.00005;
+    double torKd = 0.00005;
+    double geoKd;
+    double geoKp;
 
     double rot;
 
@@ -85,7 +92,10 @@ public class learning_pid extends LinearOpMode {
         DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub 0
         DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext"); // Control hub 1
         DcMotor Torque = hardwareMap.get(DcMotor.class, "Torque"); // Control hub 2
+        DcMotor Torque2 = hardwareMap.get(DcMotor.class, "Torque2"); // Control hub 2
 
+        CRServo george = hardwareMap.get(CRServo.class, "george");
+        Servo curious = hardwareMap.get(Servo.class, "curious");
         Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 0
         Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 1
 
@@ -108,6 +118,7 @@ public class learning_pid extends LinearOpMode {
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
         Lext.setDirection(DcMotorSimple.Direction.REVERSE);
+        Torque2.setDirection(DcMotorSimple.Direction.REVERSE);
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -127,8 +138,8 @@ public class learning_pid extends LinearOpMode {
 
             // 4 stage sliders
             // limiting the motors movement so that it does not try to over extend the sliders
-            rexttarg = (int) clamp(rexttarg, 50, 4100);
-            lexttarg = (int) clamp(lexttarg, 50, 4100);
+            rexttarg = (int) clamp(rexttarg, 50, 4200);
+            lexttarg = (int) clamp(lexttarg, 50, 4200);
 
             rexterr = lexttarg - Rext.getCurrentPosition();
             lexterr = lexttarg - Lext.getCurrentPosition();
@@ -141,6 +152,12 @@ public class learning_pid extends LinearOpMode {
             rextpreverr = (rexttarg - Rext.getCurrentPosition());
             lextpreverr = (lexttarg - Lext.getCurrentPosition());
 
+            //to fix starting jitter
+            if (Rext.getCurrentPosition() < 10 && Lext.getCurrentPosition() < 10 && rexttarg == 50){
+                Rextpower = 0;
+                Lextpower = 0;
+            }
+
             // actually setting the motor power
             Rext.setPower(clamp(Rextpower, -1, 1));
             Lext.setPower(clamp(Lextpower, -1, 1));
@@ -148,15 +165,56 @@ public class learning_pid extends LinearOpMode {
             // ------------------PID-Torqure----------------------------
 
             // Limiting the motors movement so they don't overextend
-            torquetarg = (int) clamp(torquetarg, 1, 250);
+            torquetarg = (int) clamp(torquetarg, -600, 0);
 
             torqueerr = torquetarg - Torque.getCurrentPosition();
 
-            torquepow = Kp*torqueerr*Kd + Kd*torqueerr;
+            torquepow = torKp*torqueerr + torKd*(torqueerr - torquepreverr);
 
             torquepreverr = torqueerr;
 
+            if (torqueerr < 0){
+                torKp = 0.0045;
+                torKd = 0.002;
+            } else {
+                torKp = 0.0001;
+                //torKd = 0.00075;
+            }
+
+            if (Torque.getCurrentPosition() > -60 && torquetarg == -325) {
+                torquepow = 0;
+            }
+
             Torque.setPower(clamp(torquepow, -1, 1));
+            Torque2.setPower(clamp(torquepow, -1, 1));
+
+            if (gamepad2.a && !but2Acheck) {
+                button2A += 1;
+                but2Acheck = true;
+            }
+            if (!gamepad2.a) {
+                but2Acheck = false;
+            }
+            if (!but2Acheck) {
+                if (button2A % 2 == 1) {
+                    torquetarg = -585;
+                } else {
+                    torquetarg = -325;
+                }
+            }
+
+            //george pid
+
+            geotarg = (int) clamp(geotarg, -12950, 0);
+
+            geoerr = geotarg - Torque2.getCurrentPosition();
+
+            geopow = geoKp*geoerr + geoKd*geoerr;
+
+            geopreverr = geoerr;
+
+            george.setPower(clamp(geopow, -1, 1));
+
 
             // ------------------MACROS---------------------------------
 
@@ -172,8 +230,8 @@ public class learning_pid extends LinearOpMode {
 
             if (!butYcheck) {
                 if (buttonY % 2 == 1) {
-                    rexttarg = 4100 + rexttargfine;
-                    lexttarg = 4100 + rexttargfine;
+                    rexttarg = 3000 + rexttargfine;
+                    lexttarg = 3000 + rexttargfine;
                     } else {
                     rexttarg = 50 + rexttargfine;
                     lexttarg = 50 + rexttargfine;
@@ -182,30 +240,9 @@ public class learning_pid extends LinearOpMode {
 
             // ------------------TELEOP---------------------------------
 
-            if (gamepad2.a && !but2Acheck){
-                button2A += 1;
-                but2Acheck = true;
+            if (Torque.getCurrentPosition() < -315) {
+                curious.setPosition(clamp(0.65 - ((0.00096) * (-Torque.getCurrentPosition() - 325)), 0.4, 0.65));
             }
-
-            if (!gamepad2.a){
-                but2Acheck = false;
-            }
-
-            if (!but2Acheck) {
-                if (button2A % 2 == 1) {
-                    rexttargfine += 10;
-                    lexttargfine += 10;
-                } else {
-                    Torque.setTargetPosition(0);
-                }
-            }
-
-            if (gamepad2.right_bumper)
-                Torque.setPower(1);
-            else if (gamepad2.left_bumper)
-                 Torque.setPower(-1);
-            else
-                 Torque.setPower(0);
 
             //claw control
             if (gamepad1.a && !butAcheck) {
@@ -225,6 +262,7 @@ public class learning_pid extends LinearOpMode {
             }
 
             //slider control
+            /*
             if (gamepad1.right_bumper){
                 rexttargfine += 10;
                 lexttargfine += 10;
@@ -232,25 +270,7 @@ public class learning_pid extends LinearOpMode {
                 rexttargfine -= 10;
                 lexttargfine -= 10;
             }
-
-
-            //wrist yaw rot sync
-            if (gamepad1.x && !butXcheck) {
-                buttonX += 1;
-                butXcheck = true;
-            }
-            if (!gamepad1.x) {
-                butXcheck = false;
-            }
-
-            if (!butXcheck) {
-                if (buttonX % 2 == 1) {
-                    wristYawservo.setPosition(dir/pi);
-                    wristYaw = (dir/pi);
-                } else {
-                    wristYawservo.setPosition(wristYaw);
-                }
-            }
+*/
 
             // ------------------DRIVE TRAIN---------------------------------
 
@@ -338,8 +358,8 @@ public class learning_pid extends LinearOpMode {
             telemetry.addLine("");
             telemetry.addData("Claw Rot", claw.getPosition());
             telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
-            telemetry.addData("Torque2", torquetarg);
-            telemetry.addData("Torque", Torque.getPower());
+            telemetry.addData("Torquetarg", torquetarg);
+            telemetry.addData("Torquepos", Torque.getCurrentPosition());
 
             telemetry.addLine("");
             telemetry.addLine("");
@@ -355,6 +375,13 @@ public class learning_pid extends LinearOpMode {
             telemetry.addData("B2", button2B);
             telemetry.addData("X2", button2X);
             telemetry.addData("Y2", button2Y);
+
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+
+            telemetry.addData("torque position", curious.getPosition());
+            telemetry.addData("torque power", curious.getPosition());
 
             //telemetry.addData("", );
 

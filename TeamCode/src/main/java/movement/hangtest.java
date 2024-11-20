@@ -1,26 +1,20 @@
 package movement;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.hardware.IMU;
-import com.qualcomm.robotcore.util.Range;
-import com.qualcomm.hardware.bosch.BNO055IMU;
-import java.lang.Math;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 
 @TeleOp
-public class movementtest extends LinearOpMode {
+public class hangtest extends LinearOpMode {
 
     int button2X = 0;
     int button2A = 0;
@@ -57,10 +51,15 @@ public class movementtest extends LinearOpMode {
     double rextpreverr;
     double lextpreverr;
 
-    double torquetarg;
+    int torquetarg;
+    double torquepow;
+    double torquepreverr;
+    double torqueerr;
 
-    double Kp = 0.02;
+    double Kp = 0.0175;
     double Kd = 0.015;
+    double torKp = 0.00005;
+    double torKd = 0.00005;
 
     double rot;
 
@@ -86,9 +85,13 @@ public class movementtest extends LinearOpMode {
         DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub 0
         DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext"); // Control hub 1
         DcMotor Torque = hardwareMap.get(DcMotor.class, "Torque"); // Control hub 2
+        DcMotor Torque2 = hardwareMap.get(DcMotor.class, "Torque2"); // Control hub 2
 
+        CRServo george = hardwareMap.get(CRServo.class, "george");
+        Servo curious = hardwareMap.get(Servo.class, "curious");
         Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 0
         Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 1
+
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -109,6 +112,7 @@ public class movementtest extends LinearOpMode {
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
         Lext.setDirection(DcMotorSimple.Direction.REVERSE);
+        Torque2.setDirection(DcMotorSimple.Direction.REVERSE);
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -124,145 +128,24 @@ public class movementtest extends LinearOpMode {
             return;
 
         while (opModeIsActive()) {
-            // ------------------PID-POWER---------------------------------
 
-            // 4 stage sliders
-            // limiting the motors movement so that it does not try to over extend the sliders
-            rexttarg = (int) clamp(rexttarg, 50, 4100);
-            lexttarg = (int) clamp(lexttarg, 50, 4100);
-
-            rexterr = lexttarg - Rext.getCurrentPosition();
-            lexterr = lexttarg - Lext.getCurrentPosition();
-
-            // actual pd calculations
-            Rextpower = Kp*rexterr+Kd*(rexterr - rextpreverr);
-            Lextpower = Kp*lexterr+Kd*(lexterr - lextpreverr);
-
-            // getting the previous error
-            rextpreverr = (rexttarg - Rext.getCurrentPosition());
-            lextpreverr = (lexttarg - Lext.getCurrentPosition());
-
-            // actually setting the motor power
-            Rext.setPower(clamp(Rextpower, -1, 1));
-            Lext.setPower(clamp(Lextpower, -1, 1));
-
-            // ------------------MACROS---------------------------------
-
-            // 4 stage sliders
-            if (gamepad2.y && !butYcheck) {
-                buttonY += 1;
-                butYcheck = true;
-            }
-
-            if (!gamepad2.y) {
-                butYcheck = false;
-            }
-
-            if (!butYcheck) {
-                if (buttonY % 2 == 1) {
-                    rexttarg = 4100 + rexttargfine;
-                    lexttarg = 4100 + rexttargfine;
-                    } else {
-                    rexttarg = 50 + rexttargfine;
-                    lexttarg = 50 + rexttargfine;
-                }
-            }
-
-            // ------------------TELEOP---------------------------------
-
-            if (gamepad2.right_bumper)
-                Torque.setPower(1);
-            else if (gamepad2.left_bumper)
-                 Torque.setPower(-1);
-            else
-                 Torque.setPower(0);
-
-            //claw control
-            if (gamepad1.a && !butAcheck) {
-                buttonA += 1;
-                butAcheck = true;
-            }
-            if (!gamepad1.a) {
-                butAcheck = false;
-            }
-
-            if (!butAcheck) {
-                if (buttonA % 2 == 1) {
-                    claw.setPosition(0.25);
-                    } else {
-                    claw.setPosition(0);
-                }
-            }
-
-            //slider control
-            /*
-            if (gamepad1.right_bumper){
-                rexttargfine += 10;
-                lexttargfine += 10;
-            } else if (gamepad1.left_bumper){
-                rexttargfine -= 10;
-                lexttargfine -= 10;
-            }
-            */
-
-            //wrist yaw rot sync
-            if (gamepad1.x && !butXcheck) {
-                buttonX += 1;
-                butXcheck = true;
-            }
-            if (!gamepad1.x) {
-                butXcheck = false;
-            }
-
-            if (!butXcheck) {
-                if (buttonX % 2 == 1) {
-                    wristYawservo.setPosition(dir/pi);
-                    wristYaw = (dir/pi);
-                } else {
-                    wristYawservo.setPosition(wristYaw);
-                }
-            }
-
-            // ------------------DRIVE TRAIN---------------------------------
-
-            //will cause the offset to be set back to 0
-            if (gamepad2.x)
-                imureset = getAngle();
-
-            offset = getAngle() - imureset;
-
-            //imu increases when turning left and decreases when turning right
-
-            //the offset variable tells it how much it has deviated from the original orientation so that it can still move in the correct direction when rotated
-            
-            //the dir variable is the variable that determines where we want to be on the sine wave
-
-            dir = Math.atan2(-gamepad1.right_stick_y, gamepad1.right_stick_x)-offset;
-            mag = Math.sqrt(Math.pow(gamepad1.right_stick_x, 2) + Math.pow(gamepad1.right_stick_y, 2));
-            mag *= Math.sqrt(2);
-            if (mag > Math.sqrt(2))
-                mag = Math.sqrt(2);
-
-            rot = gamepad1.left_stick_x;
-
-            //CHANGE ROTATION TO BE CONTROLLED BY GAMEPAD 2
-            if (gamepad1.b)
-                rot *= 0.5;
-            if (gamepad1.b)
-                mag *= 0.5;
-
-
-            if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0){
-                FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
-                FL.setPower((Math.sin(dir+(pi/4))*mag) + rot);
-                BR.setPower((Math.sin(dir+(pi/4))*mag) - rot);
-                BL.setPower((Math.sin(dir-(pi/4))*mag) + rot);
+            if (gamepad1.left_bumper && Torque2.getCurrentPosition() < -50){
+                george.setPower(-1);
+            } else if (gamepad1.right_bumper && Torque2.getCurrentPosition() > -12950){
+                george.setPower(1);
             } else {
-                FL.setPower(0);
-                BL.setPower(0);
-                FR.setPower(0);
-                BR.setPower(0);
+                george.setPower(0);
             }
+
+            if (gamepad1.right_trigger > 0){
+                curious.setPosition(1);
+            } else if (gamepad1.left_trigger > 0){
+                curious.setPosition(0);
+            } else {
+                curious.setPosition(0.5);
+            }
+
+            //-12900
 
             telemetry.addData("kp", Kp);
             telemetry.addData("kd", Kd);
@@ -326,6 +209,19 @@ public class movementtest extends LinearOpMode {
             telemetry.addData("B2", button2B);
             telemetry.addData("X2", button2X);
             telemetry.addData("Y2", button2Y);
+
+            telemetry.addLine("");
+            telemetry.addLine("");
+            telemetry.addLine("");
+
+            telemetry.addData("Kp", torKp);
+            telemetry.addData("Kd", torKd);
+            telemetry.addData("torque position", Torque.getCurrentPosition());
+            telemetry.addData("torque power", torquepow);
+
+            telemetry.addData("george", george.getPower());
+            telemetry.addData("curious", curious.getPosition());
+            telemetry.addData("gorge", Torque2.getCurrentPosition());
 
             //telemetry.addData("", );
 
