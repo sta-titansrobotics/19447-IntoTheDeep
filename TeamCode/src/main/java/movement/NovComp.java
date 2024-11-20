@@ -14,7 +14,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp
-public class learning_pid extends LinearOpMode {
+public class NovComp extends LinearOpMode {
 
     int button2X = 0;
     int button2A = 0;
@@ -240,9 +240,35 @@ public class learning_pid extends LinearOpMode {
 
             // ------------------TELEOP---------------------------------
 
+            //intake leveler
             if (Torque.getCurrentPosition() < -315) {
                 curious.setPosition(clamp(0.65 - ((0.00096) * (-Torque.getCurrentPosition() - 325)), 0.4, 0.65));
             }
+
+
+            //hang macro
+            if (gamepad2.y && !but2Ycheck){
+                button2A += 1;
+                but2Acheck = true;
+            }
+
+            if (!gamepad2.y){
+                but2Ycheck = false;
+            }
+
+            if (!but2Ycheck && button2Y != 0) {
+                if (button2Y % 3 == 0) {
+                    rexttargfine += 10;
+                    lexttargfine += 10;
+                }
+                else if (button2Y % 2 == 0) {
+                    rexttargfine -= 10;
+                    lexttargfine -= 10;
+                } else {
+                    Torque.setTargetPosition(0);
+                }
+            }
+
 
             //claw control
             if (gamepad1.a && !butAcheck) {
