@@ -175,7 +175,6 @@ public class NovComp extends LinearOpMode {
 
             if (torqueerr < 0){
                 torKp = 0.0045;
-                torKd = 0.002;
             } else {
                 torKp = 0.0001;
                 //torKd = 0.00075;
