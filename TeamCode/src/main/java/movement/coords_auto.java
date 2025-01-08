@@ -73,8 +73,8 @@ public class coords_auto extends LinearOpMode {
     Orientation lastAngles = new Orientation();
     double angle;
 
-    int targx
-    int targy
+    int targx;
+    int targy;
 
     @Override
     public void runOpMode() {
@@ -140,12 +140,12 @@ public class coords_auto extends LinearOpMode {
             //the dir variable is the variable that determines where we want to be on the sine wave
 
             
-            mag = error
+            //mag = error
 
-            dir = direction from current pos to target pos
+            //dir = direction from current pos to target pos
 
 
-            how to get current pos???????
+            //how to get current pos???????
 
 
             FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
