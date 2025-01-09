@@ -252,8 +252,8 @@ public class JanComp extends LinearOpMode {
             toel.setPosition(toepos);
 
 
-            Lint.setPosition(gamepad2.left_trigger);
-            Rint.setPosition(gamepad2.right_trigger);
+            Lint.setPosition(0.5+gamepad2.left_trigger);
+            //Rint.setPosition(0.5+gamepad2.right_trigger);
 
 
 
@@ -370,6 +370,8 @@ public class JanComp extends LinearOpMode {
 
             telemetry.addData("toer", toer.getPosition());
             telemetry.addData("toel", toel.getPosition());
+            telemetry.addData("rint", Rint.getPosition());
+            telemetry.addData("lint", Lint.getPosition());
             telemetry.addData("righttrig", gamepad2.right_trigger);
             telemetry.addData("lefttrig", gamepad2.left_trigger);
 
