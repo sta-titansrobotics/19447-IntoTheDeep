@@ -103,6 +103,9 @@ public class JanComp extends LinearOpMode {
         Servo Rint = hardwareMap.get(Servo.class, "rint");
         Servo Lint = hardwareMap.get(Servo.class, "lint");
 
+        CRServo rrol = hardwareMap.get(CRServo.class, "rrol");
+        CRServo Lrol = hardwareMap.get(CRServo.class, "lrol");
+
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
         parameters.mode                = BNO055IMU.SensorMode.IMU;
@@ -251,11 +254,47 @@ public class JanComp extends LinearOpMode {
             toer.setPosition(1-toepos);
             toel.setPosition(toepos);
 
+            if (gamepad2.b && !but2Bcheck) {
+                button2B += 1;
+                but2Bcheck = true;
+            }
 
-            Lint.setPosition(0.5+gamepad2.left_trigger);
-            //Rint.setPosition(0.5+gamepad2.right_trigger);
+            if (!gamepad2.b) {
+                but2Bcheck = false;
+            }
 
+            if (but2Bcheck) {
+                if (button2B % 2 == 1) {
+                    Rint.setPosition(0.75);
+                    Lint.setPosition(0.75);
+                } else {
+                    Rint.setPosition(0);
+                    Lint.setPosition(0);
+                }
+            }
 
+            if (gamepad2.x && !but2Xcheck) {
+                button2X += 1;
+                but2Xcheck = true;
+            }
+
+            if (!gamepad2.x) {
+                but2Xcheck = false;
+            }
+
+            if (but2Xcheck) {
+                if (button2X % 2 == 1) {
+                    claw.setPosition(1);
+                } else {
+                    claw.setPosition(0);
+                }
+            }
+
+            rrol.setPower(gamepad2.right_trigger);
+            Lrol.setPower(1-gamepad2.right_trigger);
+
+            rrol.setPower(-gamepad2.left_trigger);
+            Lrol.setPower(-(1-gamepad2.left_trigger));
 
             // ------------------DRIVE TRAIN---------------------------------
 
