@@ -104,7 +104,7 @@ public class JanComp extends LinearOpMode {
         Servo Lint = hardwareMap.get(Servo.class, "lint");
 
         CRServo rrol = hardwareMap.get(CRServo.class, "rrol");
-        CRServo Lrol = hardwareMap.get(CRServo.class, "lrol");
+        CRServo lrol = hardwareMap.get(CRServo.class, "lrol");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -133,6 +133,7 @@ public class JanComp extends LinearOpMode {
         FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        rrol.setDirection(CRServo.Direction.REVERSE);
 
         waitForStart();
 
@@ -265,11 +266,11 @@ public class JanComp extends LinearOpMode {
 
             if (but2Bcheck) {
                 if (button2B % 2 == 1) {
-                    Rint.setPosition(0.75);
-                    Lint.setPosition(0.75);
+                    Rint.setPosition(0.7);
+                    Lint.setPosition(0.7);
                 } else {
-                    Rint.setPosition(0);
-                    Lint.setPosition(0);
+                    Rint.setPosition(0.025);
+                    Lint.setPosition(0.025);
                 }
             }
 
@@ -284,17 +285,15 @@ public class JanComp extends LinearOpMode {
 
             if (but2Xcheck) {
                 if (button2X % 2 == 1) {
-                    claw.setPosition(1);
+                    claw.setPosition(0.55);
                 } else {
                     claw.setPosition(0);
                 }
             }
 
-            rrol.setPower(gamepad2.right_trigger);
-            Lrol.setPower(1-gamepad2.right_trigger);
+            rrol.setPower((gamepad2.right_trigger)-gamepad2.left_trigger);
+            lrol.setPower((gamepad2.right_trigger)-gamepad2.left_trigger);
 
-            rrol.setPower(-gamepad2.left_trigger);
-            Lrol.setPower(-(1-gamepad2.left_trigger));
 
             // ------------------DRIVE TRAIN---------------------------------
 
@@ -411,6 +410,8 @@ public class JanComp extends LinearOpMode {
             telemetry.addData("toel", toel.getPosition());
             telemetry.addData("rint", Rint.getPosition());
             telemetry.addData("lint", Lint.getPosition());
+            telemetry.addData("rrol", rrol.getPower());
+            telemetry.addData("lrol", lrol.getPower());
             telemetry.addData("righttrig", gamepad2.right_trigger);
             telemetry.addData("lefttrig", gamepad2.left_trigger);
 

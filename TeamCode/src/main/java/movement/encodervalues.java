@@ -114,6 +114,8 @@ public class encodervalues extends LinearOpMode {
         FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        Servo claw = hardwareMap.get(Servo.class, "Claw");
+
 
         waitForStart();
 
@@ -137,6 +139,10 @@ public class encodervalues extends LinearOpMode {
             //telemetry.addData("", );
 
             telemetry.update();
+
+            telemetry.addData("claw", claw.getPosition());
+
+            claw.setPosition(gamepad1.right_trigger);
         }
     }
     private double getAngle()
