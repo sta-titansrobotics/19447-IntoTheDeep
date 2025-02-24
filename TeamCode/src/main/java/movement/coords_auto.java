@@ -41,7 +41,7 @@ public class coords_auto extends LinearOpMode {
     boolean but2Bcheck = false;
 
     double prevtime;
-    
+
     static double dir;
     static double mag;
     static double pi = Math.PI;
@@ -69,29 +69,24 @@ public class coords_auto extends LinearOpMode {
 
     double wristYaw;
 
+    int ypod;
+    int xpod;
+    double ycord;
+    double xcord;
+
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
     double angle;
-
-    int targx;
-    int targy;
 
     @Override
     public void runOpMode() {
 
         // ----------------------Set Up------------------------------------------------
         // Moving
-        DcMotor FL = hardwareMap.get(DcMotor.class, "FL"); // Expansion hub 
-        DcMotor BL = hardwareMap.get(DcMotor.class, "BL"); // Expansion hub 
-        DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Expantion hub 
-        DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Expantion hub 
-
-        DcMotor Lext = hardwareMap.get(DcMotor.class, "Lext"); // Control hub 0
-        DcMotor Rext = hardwareMap.get(DcMotor.class, "Rext"); // Control hub 1
-        DcMotor Torque = hardwareMap.get(DcMotor.class, "Torque"); // Control hub 2
-
-        Servo claw = hardwareMap.get(Servo.class, "Claw"); // Control hub 0
-        Servo wristYawservo = hardwareMap.get(Servo.class, "WristYaw"); // Control hub 1
+        DcMotor FL = hardwareMap.get(DcMotor.class, "FL"); // Expansion hub
+        DcMotor BL = hardwareMap.get(DcMotor.class, "BL"); // Expansion hub
+        DcMotor FR = hardwareMap.get(DcMotor.class, "FR"); // Expantion hub
+        DcMotor BR = hardwareMap.get(DcMotor.class, "BR"); // Expantion hub
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -111,15 +106,17 @@ public class coords_auto extends LinearOpMode {
 
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
-        Lext.setDirection(DcMotorSimple.Direction.REVERSE);
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        Lext.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Rext.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        ypod = FR.getCurrentPosition();
+        xpod = BR.getCurrentPosition();
+
+        xcord = ((ypod*Math.cos(getAngle()))+(xpod*Math.cos(getAngle()+(pi/2))));
+        ycord = ((ypod*Math.sin(getAngle()))+(xpod*Math.sin(getAngle()+(pi/2))));
 
         waitForStart();
 
@@ -127,34 +124,46 @@ public class coords_auto extends LinearOpMode {
             return;
 
         while (opModeIsActive()) {
-
             // ------------------DRIVE TRAIN---------------------------------
 
+            //will cause the offset to be set back to 0
+            if (gamepad2.x && gamepad2.a && gamepad2.b && gamepad2.y)
+                imureset = getAngle();
 
             offset = getAngle() - imureset;
 
             //imu increases when turning left and decreases when turning right
 
             //the offset variable tells it how much it has deviated from the original orientation so that it can still move in the correct direction when rotated
-            
+
             //the dir variable is the variable that determines where we want to be on the sine wave
 
-            
-            //mag = error
+            dir = Math.atan2(-gamepad1.right_stick_y, gamepad1.right_stick_x)-offset;
+            mag = Math.sqrt(Math.pow(gamepad1.right_stick_x, 2) + Math.pow(gamepad1.right_stick_y, 2));
+            mag *= Math.sqrt(2);
+            if (mag > Math.sqrt(2))
+                mag = Math.sqrt(2);
 
-            //dir = direction from current pos to target pos
+            rot = gamepad1.left_stick_x;
+
+            //CHANGE ROTATION TO BE CONTROLLED BY GAMEPAD 2
+            if (gamepad1.b)
+                rot *= 0.5;
+            if (gamepad1.b)
+                mag *= 0.5;
 
 
-            //how to get current pos???????
-
-
-            FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
-            FL.setPower((Math.sin(dir+(pi/4))*mag) + rot);
-            BR.setPower((Math.sin(dir+(pi/4))*mag) - rot);
-            BL.setPower((Math.sin(dir-(pi/4))*mag) + rot);
-
-            telemetry.addData("kp", Kp);
-            telemetry.addData("kd", Kd);
+            if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0){
+                FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
+                FL.setPower((Math.sin(dir+(pi/4))*mag) + rot);
+                BR.setPower((Math.sin(dir+(pi/4))*mag) - rot);
+                BL.setPower((Math.sin(dir-(pi/4))*mag) + rot);
+            } else {
+                FL.setPower(0);
+                BL.setPower(0);
+                FR.setPower(0);
+                BR.setPower(0);
+            }
 
             telemetry.addLine("Drivetrain");
             telemetry.addLine("");
@@ -164,57 +173,19 @@ public class coords_auto extends LinearOpMode {
             telemetry.addData("FL Power", FL.getPower());
             telemetry.addData("BR Power", BR.getPower());
             telemetry.addData("BL Power", BL.getPower());
-            telemetry.addData("Lx", gamepad1.left_stick_x);
-            telemetry.addData("Ly", gamepad1.left_stick_y);
-            telemetry.addData("Rx", gamepad1.right_stick_x);
-            telemetry.addData("Ry", gamepad1.right_stick_y);
 
             telemetry.addLine("");
             telemetry.addLine("");
             telemetry.addLine("");
 
-            telemetry.addLine("4 Stage Sliders");
-            telemetry.addLine("");
-            telemetry.addData("Left Extender Pwr", 0.01*lexterr*0.1*(lextpreverr - lexterr));
-            telemetry.addData("Left Extender Enc", Lext.getCurrentPosition());
-            telemetry.addData("Left Targ", lexttarg);
-            telemetry.addData("Left Err", (lexttarg - Lext.getCurrentPosition()));
-            telemetry.addData("Left Err Prev Diff", (lexterr - lextpreverr));
+            telemetry.addData("ypod", ypod);
+            telemetry.addData("xpod", xpod);
 
             telemetry.addLine("");
-            telemetry.addLine("");
 
-            telemetry.addData("Right Extender Pwr", 0.01*rexterr*0.1*(rextpreverr - rexterr));
-            telemetry.addData("Right Extender Enc", Rext.getCurrentPosition());
-            telemetry.addData("Right Targ", rexttarg);
-            telemetry.addData("Right Err", (rexttarg - Rext.getCurrentPosition()));
-            telemetry.addData("Right Err Prev Diff", (lexterr - lextpreverr));
+            telemetry.addData("ycord", ycord);
+            telemetry.addData("xcord", xcord);
 
-            telemetry.addLine("");
-            telemetry.addLine("");
-            telemetry.addLine("");
-
-            telemetry.addLine("Intake");
-            telemetry.addLine("");
-            telemetry.addData("Claw Rot", claw.getPosition());
-            telemetry.addData("Wrist Yaw", wristYawservo.getPosition());
-            telemetry.addData("Torque2", torquetarg);
-            telemetry.addData("Torque", Torque.getPower());
-
-            telemetry.addLine("");
-            telemetry.addLine("");
-            telemetry.addLine("");
-
-            telemetry.addLine("User Inputs");
-            telemetry.addLine("");
-            telemetry.addData("A", buttonA);
-            telemetry.addData("B", buttonB);
-            telemetry.addData("X", buttonX);
-            telemetry.addData("Y", buttonY);
-            telemetry.addData("A2", button2A);
-            telemetry.addData("B2", button2B);
-            telemetry.addData("X2", button2X);
-            telemetry.addData("Y2", button2Y);
 
             //telemetry.addData("", );
 

@@ -35,38 +35,45 @@ public class encodervalues extends LinearOpMode {
     boolean but2Bcheck = false;
 
     double prevtime;
-    
+
     static double dir;
     static double mag;
     static double pi = Math.PI;
 
-    int lexttarg;
-    int rexttarg;
-    int lexttargfine;
-    int rexttargfine;
-    double rexterr;
-    double lexterr;
-    double Lextpower;
-    double Rextpower;
-    double rextpreverr;
-    double lextpreverr;
+    int XAxistarg;
+    int XAxistargfine;
+    double XAxiserr;
+    double XAxispower;
+    double XAxispreverr;
 
-    int torquetarg;
-    double torquepow;
-    double torquepreverr;
-    double torqueerr;
+    double XKp = 0.011;
+    double XKd = 0.001;
+    double HlKp = 0.0125;
+    double HlKd = 0.0015;
 
-    double Kp = 0.0175;
-    double Kd = 0.015;
-    double torKp = 0.00005;
-    double torKd = 0.00005;
+    int VLexttarg;
+    int VRexttarg;
+    int VLexttargfine;
+    int VRexttargfine;
+    double VRexterr;
+    double VLexterr;
+    double VLextpower;
+    double VRextpower;
+    double VRextpreverr;
+    double VLextpreverr;
+
+    double VKp = 0.01;
+    double VKd = 0.0015;
 
     double rot;
 
     double offset = 0;
     double imureset = 0;
 
-    double wristYaw;
+    double toepos = 0.97;
+
+    double xpos = 0;
+    double ypos = 0;
 
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
@@ -107,6 +114,9 @@ public class encodervalues extends LinearOpMode {
         FL.setDirection(DcMotorSimple.Direction.REVERSE);
         BL.setDirection(DcMotorSimple.Direction.REVERSE);
 
+        FR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        BR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         HRext.setDirection(DcMotorSimple.Direction.REVERSE);
 
         BR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -117,12 +127,46 @@ public class encodervalues extends LinearOpMode {
         Servo claw = hardwareMap.get(Servo.class, "Claw");
 
 
+
         waitForStart();
 
         if (isStopRequested())
             return;
 
         while (opModeIsActive()) {
+
+            ypos = FR.getCurrentPosition();
+            xpos = BR.getCurrentPosition();
+
+            XAxistarg = (int) clamp(XAxistarg, 10, 1950);
+
+            XAxiserr = XAxistarg - xpos;
+
+            // actual pd calculations
+            XAxispower = XAxiserr*XKp+(XAxiserr - XAxispreverr)*XKd;
+
+            // getting the previous error
+            XAxispreverr = (XAxistarg - xpos);
+
+            // actually setting the motor power
+            //HRext.setPower(clamp(XAxispower, -1, 1));
+
+            if (gamepad2.y && !butYcheck) {
+                buttonY += 1;
+                butYcheck = true;
+            }
+
+            if (!gamepad2.y) {
+                butYcheck = false;
+            }
+
+            if (butYcheck) {
+                if (buttonY % 2 == 1) {
+                    XAxistarg = 1900;
+                } else {
+                    XAxistarg = 10;
+                }
+            }
 
             telemetry.addData("Hor Right Extender Pwr", HRext.getPower());
             telemetry.addData("Hor Right Extender Enc", HRext.getCurrentPosition());
@@ -135,6 +179,16 @@ public class encodervalues extends LinearOpMode {
 
             telemetry.addData("vert Left Extender Pwr", VLext.getPower());
             telemetry.addData("vert Left Extender Enc", VLext.getCurrentPosition());
+
+            telemetry.addData("Y Enc", ypos);
+            telemetry.addData("X Enc", xpos);
+
+            telemetry.addData("Xtarg", XAxistarg);
+            telemetry.addData("Xerr", XAxiserr);
+            telemetry.addData("Xpower", XAxispower);
+            telemetry.addData("Xpreverr", XAxispreverr);
+            telemetry.addData("XKp", XKp);
+            telemetry.addData("XKd", XKd);
 
             //telemetry.addData("", );
 

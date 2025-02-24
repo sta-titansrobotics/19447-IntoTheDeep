@@ -67,6 +67,13 @@ public class JanComp extends LinearOpMode {
     double VRextpreverr;
     double VLextpreverr;
 
+    int rottarg;
+    double roterr;
+    double rotpower;
+    double rotpreverr;
+    double rotKp = 0.01;
+    double rotKd = 0.0015;
+
     double VKp = 0.01;
     double VKd = 0.0015;
 
@@ -75,7 +82,7 @@ public class JanComp extends LinearOpMode {
     double offset = 0;
     double imureset = 0;
 
-    double toepos = 0.16;
+    double toepos = 0.97;
 
     BNO055IMU imu;
     Orientation lastAngles = new Orientation();
@@ -134,6 +141,9 @@ public class JanComp extends LinearOpMode {
         FL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         rrol.setDirection(CRServo.Direction.REVERSE);
+
+        Rint.setPosition(0.025);
+        Lint.setPosition(0.025);
 
         waitForStart();
 
@@ -244,16 +254,15 @@ public class JanComp extends LinearOpMode {
 
             if (but2Acheck && VRext.getCurrentPosition() > 1000) {
                 if (button2A % 2 == 1) {
-                    toepos = 0.5;
+                    toepos = 0.98;
                 } else {
-                    toepos = 0.16;
+                    toepos = 0.4;
                 }
             }
 
-
-
-            toer.setPosition(1-toepos);
+            toer.setPosition(toepos);
             toel.setPosition(toepos);
+
 
             if (gamepad2.b && !but2Bcheck) {
                 button2B += 1;
@@ -266,11 +275,11 @@ public class JanComp extends LinearOpMode {
 
             if (but2Bcheck) {
                 if (button2B % 2 == 1) {
-                    Rint.setPosition(0.7);
-                    Lint.setPosition(0.7);
+                    Rint.setPosition(0.725);
+                    Lint.setPosition(0.725);
                 } else {
-                    Rint.setPosition(0.025);
-                    Lint.setPosition(0.025);
+                    Rint.setPosition(0.015);
+                    Lint.setPosition(0.015);
                 }
             }
 
@@ -287,7 +296,7 @@ public class JanComp extends LinearOpMode {
                 if (button2X % 2 == 1) {
                     claw.setPosition(0.55);
                 } else {
-                    claw.setPosition(0);
+                    claw.setPosition(0.25);
                 }
             }
 
@@ -295,11 +304,52 @@ public class JanComp extends LinearOpMode {
             lrol.setPower((gamepad2.right_trigger)-gamepad2.left_trigger);
 
 
+
+
+
+            rottarg = (int) clamp(VRexttarg, -180, 180);
+
+            //roterr = rottarg - getDeg();
+
+            // actual pd calculations
+            rotpower = roterr*VKp+(roterr - rotpreverr)*VKd;
+
+            // getting the previous error
+          //  rotpreverr = (rottarg - getDeg());
+
+            // actually setting the motor power
+            //rot = clamp(rotpower, -1, 1);
+
+            if (gamepad1.x && !butXcheck) {
+                buttonX += 1;
+                butXcheck = true;
+            }
+
+            if (!gamepad1.x) {
+                butXcheck = false;
+            }
+
+            if (gamepad1.dpad_up) {
+                rottarg = 0;
+            }
+            if (gamepad1.dpad_down) {
+                rottarg = 180;
+            }
+            if (gamepad1.dpad_left) {
+                rottarg = 90;
+            }
+            if (gamepad1.dpad_right) {
+                rottarg = -90;
+            }
+
+
+
+
             // ------------------DRIVE TRAIN---------------------------------
 
             //will cause the offset to be set back to 0
-            if (gamepad2.x)
-                imureset = getAngle();
+            //if (gamepad2.x)
+            //    imureset = getAngle();
 
             offset = getAngle() - imureset;
 
@@ -315,7 +365,7 @@ public class JanComp extends LinearOpMode {
             if (mag > Math.sqrt(2))
                 mag = Math.sqrt(2);
 
-            rot = gamepad1.left_stick_x;
+            rot += gamepad1.left_stick_x;
 
             //CHANGE ROTATION TO BE CONTROLLED BY GAMEPAD 2
             if (gamepad1.b)
@@ -324,7 +374,7 @@ public class JanComp extends LinearOpMode {
                 mag *= 0.5;
 
 
-            if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0){
+            if (gamepad1.right_stick_y != 0 || gamepad1.right_stick_x != 0 || gamepad1.left_stick_x != 0 ){
                 FR.setPower((Math.sin(dir-(pi/4))*mag) - rot);
                 FL.setPower((Math.sin(dir+(pi/4))*mag) + rot);
                 BR.setPower((Math.sin(dir+(pi/4))*mag) - rot);
@@ -339,6 +389,7 @@ public class JanComp extends LinearOpMode {
             telemetry.addLine("Drivetrain");
             telemetry.addLine("");
             telemetry.addData("dir", dir);
+            //telemetry.addData("degrees", getDeg());
             telemetry.addData("offset", offset);
             telemetry.addData("FR Power", FR.getPower());
             telemetry.addData("FL Power", FL.getPower());
@@ -348,6 +399,11 @@ public class JanComp extends LinearOpMode {
             telemetry.addData("Ly", gamepad1.left_stick_y);
             telemetry.addData("Rx", gamepad1.right_stick_x);
             telemetry.addData("Ry", gamepad1.right_stick_y);
+            telemetry.addData("rot", rot);
+            telemetry.addData("rottarg", rottarg);
+            telemetry.addData("roterr", roterr);
+            telemetry.addData("rotpower", rotpower);
+            telemetry.addData("rotpreverr", rotpreverr);
 
             telemetry.addLine("");
             telemetry.addLine("");
@@ -414,6 +470,8 @@ public class JanComp extends LinearOpMode {
             telemetry.addData("lrol", lrol.getPower());
             telemetry.addData("righttrig", gamepad2.right_trigger);
             telemetry.addData("lefttrig", gamepad2.left_trigger);
+            telemetry.addData("righttrig", gamepad1.right_trigger);
+            telemetry.addData("lefttrig", gamepad1.left_trigger);
 
             //telemetry.addData("", );
 
@@ -439,6 +497,7 @@ public class JanComp extends LinearOpMode {
 
         return angle;
     }
+
     public double clamp(double value, double min, double max) {
         return Math.min(Math.max(value, min), max);
     }
